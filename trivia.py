@@ -41,80 +41,56 @@ if "shared_state" not in st.session_state:
         "game_started": False,
         "players": [],
         "scores": {},
-        "host_name": "",
         "current_question": 0,
         "time_remaining": 20,
         "player_submitted": {},
-        "countdown_shown": False,  # New flag to track if countdown is shown
     }
 
-# Sidebar for joining or hosting the game
+# Sidebar for players to join
 with st.sidebar:
-    st.markdown("<h3>Game Setup</h3>", unsafe_allow_html=True)
-    
-    # Host or Join toggle
-    is_host = st.checkbox("I am the host")
-    if is_host:
-        host_name = st.text_input("Enter your name as the host:")
-        if host_name:
-            st.session_state.shared_state["host_name"] = host_name
-            if host_name not in st.session_state.shared_state["players"]:
-                st.session_state.shared_state["players"].append(host_name)
-                st.session_state.shared_state["scores"][host_name] = 0
-                st.success("You are hosting the game!")
-    else:
-        player_name = st.text_input("Enter your name to join:")
-        if player_name and st.button("Join Game"):
-            if player_name not in st.session_state.shared_state["players"]:
-                st.session_state.shared_state["players"].append(player_name)
-                st.session_state.shared_state["scores"][player_name] = 0
-                st.success(f"{player_name} has joined the game!")
-    
-    # Display current players
+    st.markdown("<h3>Join the Game</h3>", unsafe_allow_html=True)
+
+    # Input player name
+    player_name = st.text_input("Enter your name to join:")
+
+    if player_name and st.button("Join Game"):
+        if player_name not in st.session_state.shared_state["players"]:
+            st.session_state.shared_state["players"].append(player_name)
+            st.session_state.shared_state["scores"][player_name] = 0
+            st.success(f"{player_name} has joined the game!")
+
+    # Display players
     st.markdown("### Players in the game:")
     for player in st.session_state.shared_state["players"]:
         st.write(player)
-    
-    # Start game button (only visible to host)
-    if is_host and st.session_state.shared_state["host_name"]:
-        if st.button("Start Game"):
-            st.session_state.shared_state["game_started"] = True
-            st.session_state.shared_state["current_question"] = 0
-            st.session_state.shared_state["time_remaining"] = 20
-            st.session_state.shared_state["player_submitted"] = {}
-            st.session_state.shared_state["countdown_shown"] = False  # Reset countdown flag
 
-# Main game screen
+    # Start game button (visible to all)
+    if st.button("Start Game"):
+        st.session_state.shared_state["game_started"] = True
+        st.session_state.shared_state["current_question"] = 0
+        st.session_state.shared_state["time_remaining"] = 20
+        st.session_state.shared_state["player_submitted"] = {}
+
+# Main game area
 if st.session_state.shared_state["game_started"]:
-    # Countdown before the first question
-    if st.session_state.shared_state["current_question"] == 0 and not st.session_state.shared_state["countdown_shown"]:
-        st.markdown("<h2>Get Ready! The game starts in 10 seconds...</h2>", unsafe_allow_html=True)
-        with st.spinner("Starting the game..."):
-            time.sleep(10)  # Simulate the countdown
-        st.session_state.shared_state["countdown_shown"] = True
-
-    # Timer logic
-    time_limit = 20  # seconds per question
-    if "start_time" not in st.session_state.shared_state:
-        st.session_state.shared_state["start_time"] = time.time()
-    elapsed_time = int(time.time() - st.session_state.shared_state["start_time"])
-    st.session_state.shared_state["time_remaining"] = max(0, time_limit - elapsed_time)
-
-    # Show question
+    time_limit = 20  # Time per question
     current_question = st.session_state.shared_state["current_question"]
+
+    # Show questions if available
     if current_question < len(questions):
         question = questions[current_question]
+
+        # Display the question
         st.markdown(f"<h3>Question {current_question + 1}: {question['question']}</h3>", unsafe_allow_html=True)
-        
-        # Player answer input
-        player_name = st.session_state.shared_state["host_name"] if is_host else player_name
+
+        # Player answers
         if player_name in st.session_state.shared_state["players"]:
             if player_name not in st.session_state.shared_state["player_submitted"]:
                 st.session_state.shared_state["player_submitted"][player_name] = {}
-            
+
             if not st.session_state.shared_state["player_submitted"][player_name].get(current_question, False):
                 answer = st.radio("Your answer:", question["options"], key=f"q{current_question}_{player_name}")
-                
+
                 # Submit answer
                 if st.button("Submit Answer", key=f"submit_{current_question}"):
                     if answer == question["answer"]:
@@ -124,21 +100,17 @@ if st.session_state.shared_state["game_started"]:
                         st.error(f"Wrong! The correct answer is {question['answer']}")
                     st.session_state.shared_state["player_submitted"][player_name][current_question] = True
 
-        # Show timer
-        st.markdown(f"⏳ Time remaining: {st.session_state.shared_state['time_remaining']} seconds")
-        
-        # Next Question Logic
-        if st.session_state.shared_state["time_remaining"] == 0 or st.button("Next Question", key="next_question"):
+        # Move to the next question
+        if st.button("Next Question", key="next_question"):
             st.session_state.shared_state["current_question"] += 1
-            st.session_state.shared_state["start_time"] = time.time()
             st.session_state.shared_state["time_remaining"] = time_limit
             st.session_state.shared_state["player_submitted"] = {}
 
     else:
-        # End of game
+        # Game Over
         st.markdown("<h2>🎉 Game Over! 🎉</h2>", unsafe_allow_html=True)
-        st.write("Final Scores:")
+        st.markdown("### Final Scores:")
         for player, score in sorted(st.session_state.shared_state["scores"].items(), key=lambda x: x[1], reverse=True):
             st.write(f"{player}: {score}")
 else:
-    st.markdown("<h2>Waiting for the host to start the game...</h2>", unsafe_allow_html=True)
+    st.markdown("<h2>Waiting for the game to start...</h2>", unsafe_allow_html=True)
