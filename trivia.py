@@ -42,7 +42,6 @@ if "shared_state" not in st.session_state:
         "players": [],
         "scores": {},
         "current_question": 0,
-        "time_remaining": 20,
         "player_submitted": {},
     }
 
@@ -68,12 +67,10 @@ with st.sidebar:
     if st.button("Start Game"):
         st.session_state.shared_state["game_started"] = True
         st.session_state.shared_state["current_question"] = 0
-        st.session_state.shared_state["time_remaining"] = 20
         st.session_state.shared_state["player_submitted"] = {}
 
 # Main game area
 if st.session_state.shared_state["game_started"]:
-    time_limit = 20  # Time per question
     current_question = st.session_state.shared_state["current_question"]
 
     # Show questions if available
@@ -88,8 +85,9 @@ if st.session_state.shared_state["game_started"]:
             if player_name not in st.session_state.shared_state["player_submitted"]:
                 st.session_state.shared_state["player_submitted"][player_name] = {}
 
+            # If the player hasn't answered this question yet
             if not st.session_state.shared_state["player_submitted"][player_name].get(current_question, False):
-                answer = st.radio("Your answer:", question["options"], key=f"q{current_question}_{player_name}")
+                answer = st.radio("Select your answer:", question["options"], key=f"q{current_question}_{player_name}")
 
                 # Submit answer
                 if st.button("Submit Answer", key=f"submit_{current_question}"):
@@ -100,10 +98,9 @@ if st.session_state.shared_state["game_started"]:
                         st.error(f"Wrong! The correct answer is {question['answer']}")
                     st.session_state.shared_state["player_submitted"][player_name][current_question] = True
 
-        # Move to the next question
-        if st.button("Next Question", key="next_question"):
+        # Show a button to move to the next question
+        if st.button("Next Question", key=f"next_question_{current_question}"):
             st.session_state.shared_state["current_question"] += 1
-            st.session_state.shared_state["time_remaining"] = time_limit
             st.session_state.shared_state["player_submitted"] = {}
 
     else:
